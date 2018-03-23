@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/Interval.h
+
+/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/MyDataStream.h
+unistd.h
+-
+fcntl.h
+-
+Interval.h
+/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/Interval.h
+
+/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/MyVisitor.h
+spatialindex/SpatialIndex.h
+-
+
+/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/main.cpp
+spatialindex/SpatialIndex.h
+-
+chrono
+-
+MyVisitor.h
+/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/MyVisitor.h
+MyDataStream.h
+/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/MyDataStream.h
+sys/stat.h
+-
+fcntl.h
+-
+
