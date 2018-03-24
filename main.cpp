@@ -5,7 +5,7 @@
  * Copyright (c) 2002, Marios Hadjieleftheriou
  *
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -32,22 +32,18 @@
 #include <chrono>
 #include "MyVisitor.h"
 #include "MyDataStream.h"
-#include "Rectangle.h"
 #include <sys/stat.h>
-#include <fcntl.h>
-
-
-#define MEASUREMENTS 600
-#define CUT_MEASUREMENTS 100
-#define GB 1000000000
 
 using std::cout;
 using std::endl;
 
 
-void printInfo(SpatialIndex::ISpatialIndex *tree, SpatialIndex::StorageManager::IBuffer *file,SpatialIndex::id_type index_id);
+void printInfo(SpatialIndex::ISpatialIndex *tree, SpatialIndex::StorageManager::IBuffer *file,
+               SpatialIndex::id_type index_id);
+
 void calculate_statistics(std::vector<double> &times, float file_size);
-auto  call_lib_spatial(SpatialIndex::Point const &point, MyVisitor &visitor, SpatialIndex::ISpatialIndex *tree_);
+
+auto call_lib_spatial(SpatialIndex::Point const &point, MyVisitor &visitor, SpatialIndex::ISpatialIndex *tree_);
 
 void
 printInfo(SpatialIndex::ISpatialIndex *tree, SpatialIndex::StorageManager::IBuffer *file,
@@ -59,6 +55,8 @@ printInfo(SpatialIndex::ISpatialIndex *tree, SpatialIndex::StorageManager::IBuff
     } else {
         std::cerr << "The stucture seems O.K." << std::endl;
     }
+    Tools::PropertySet properties;
+    tree->getIndexProperties(properties);
 
     std::cerr << *tree;
     std::cerr << "Buffer hits: " << file->getHits() << std::endl;
@@ -71,7 +69,6 @@ void calculate_statistics(std::vector<double> &times) {
     //sort times
     std::sort(times.begin(), times.end());
 
-    times.resize(MEASUREMENTS - CUT_MEASUREMENTS);
 
     /*estimated mean*/
     double sum = std::accumulate(times.cbegin(), times.cend(), 0.0);
@@ -88,16 +85,16 @@ void calculate_statistics(std::vector<double> &times) {
 
     double std = std::sqrt(innerProduct / times_minus_mean.size());
 
-    double std_error = std / std::sqrt((MEASUREMENTS - CUT_MEASUREMENTS));
+    double std_error = std / std::sqrt((times.size()));
 
 
     cout << "#Time|Standard error" << endl;
-    cout <<  mean << "\t" << std_error << "\t" << endl;
+    cout << mean << "\t" << std_error << "\t" << endl;
 }
 
-void  call_lib_spatial(SpatialIndex::Region query, SpatialIndex::ISpatialIndex *tree_) {
+void call_lib_spatial(SpatialIndex::Region query, SpatialIndex::ISpatialIndex *tree_) {
     MyVisitor visitor(1);
-    tree_->intersectsWithQuery(query,visitor);
+    tree_->intersectsWithQuery(query, visitor);
 }
 
 
@@ -105,21 +102,21 @@ std::vector<MyRectangle> readQueryPoints(std::string queryFile) {
     int datafile;
     Interval::typrect rectangle;
     std::vector<MyRectangle> queryPoints{};
-    int length, numbRects, nbytes, i=0;
+    int length, numbRects, nbytes, i = 0;
     struct stat status;
 
-    datafile= open(queryFile.c_str(),O_RDONLY);
+    datafile = open(queryFile.c_str(), O_RDONLY);
 
-    fstat(datafile,&status);
-    length= status.st_size;
-    numbRects= length / sizeof(Interval::typrect);
+    fstat(datafile, &status);
+    length = status.st_size;
+    numbRects = length / sizeof(Interval::typrect);
 
 
     do {
-        nbytes= read(datafile,rectangle,sizeof(Interval::typrect));
+        nbytes = read(datafile, rectangle, sizeof(Interval::typrect));
         if (nbytes != sizeof(Interval::typrect)) {
-            fprintf(stderr,"Error during read!\n");
-            fprintf(stdout,"Error during read!\n");
+            fprintf(stderr, "Error during read!\n");
+            fprintf(stdout, "Error during read!\n");
             exit(-1);
         }
 
@@ -131,13 +128,12 @@ std::vector<MyRectangle> readQueryPoints(std::string queryFile) {
     } while (i < numbRects);
 
 
-
     return queryPoints;
 }
 
 int main(int argc, char **argv) {
 
-    std::string treeFile="tree_file.index";
+    std::string treeFile = "tree_file.index";
     std::chrono::high_resolution_clock::time_point t1;
     std::chrono::high_resolution_clock::time_point t2;
     std::vector<double> times;
@@ -147,12 +143,13 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-
+    auto no_extend = 0;
     auto utilization = std::stod(argv[4]);
     auto capacity = static_cast<uint32_t>(std::stoi(argv[3]));
 
     //create new in memory storage manager
-    SpatialIndex::IStorageManager *on_disk_manager = SpatialIndex::StorageManager::createNewDiskStorageManager(treeFile, 4096);
+    SpatialIndex::IStorageManager *on_disk_manager = SpatialIndex::StorageManager::createNewDiskStorageManager(treeFile,
+                                                                                                               4096);
 
 //SpatialIndex::StorageManager::
 
@@ -162,14 +159,15 @@ int main(int argc, char **argv) {
     // (LRU buffer, etc can be created the same way).
 
     //pass the file name to create a stream
-    cout << "----------------------------------------------------"<< endl;
-    MyDataStream stream(argv[1], MEASUREMENTS);
-    cout << "----------------------------------------------------"<< endl;
+    cout << "----------------------------------------------------" << endl;
+    Grid mambo;
+    MyDataStream stream(argv[1], mambo);
+    cout << "----------------------------------------------------" << endl;
 
     // Create and bulk load a new RTree using STR and the  RSTAR splitting policy.
     SpatialIndex::id_type indexIdentifier = 1;
-    std::cout<<utilization<<std::endl;
-    std::cout<<capacity<<std::endl;
+    std::cout << utilization << std::endl;
+    std::cout << capacity << std::endl;
     SpatialIndex::ISpatialIndex *tree = nullptr;
     try {
 
@@ -179,17 +177,17 @@ int main(int argc, char **argv) {
                 SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
     }
 
-    catch (Tools::IllegalArgumentException e){
-        std::cerr<<e.what()<<std::endl;
-        std::cout<<e.what()<<std::endl;
+    catch (Tools::IllegalArgumentException e) {
+        std::cerr << e.what() << std::endl;
+        std::cout << e.what() << std::endl;
     }
 
 
-    std::cout<<"Building the index done!"<<std::endl;
+    std::cout << "Building the index done!" << std::endl;
 //exit(9);
-    std::vector<MyRectangle > query_points{};
+    std::vector<MyRectangle> query_points{};
     query_points = readQueryPoints(argv[2]);
-    std::cout<<"size:"<<query_points.size()<<std::endl;
+    std::cout << "size:" << query_points.size() << std::endl;
     for (auto &p:query_points) {
         SpatialIndex::Region queryRectangle = p.convertRectangleRegion();
 
@@ -201,27 +199,40 @@ int main(int argc, char **argv) {
         system("echo 3 > /proc/sys/vm/drop_caches");
         system("sync");
 
-    t1 = std::chrono::high_resolution_clock::now();
-    //do the point query and return the cluster the point belongs to
-    call_lib_spatial(queryRectangle,  tree);
-    t2 = std::chrono::high_resolution_clock::now();
-    double slib_time = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
-    times.push_back(slib_time);
-    std::cout << "Retrieval time:" << slib_time << std::endl<<std::endl;
-}
+        //convert rectangle to intervals
+        Interval::typrect rec;
+        for (int i = 0; i < p.getDimensionality(); ++i) {
+            rec[i].l = std::get<0>(p.getIntervalAtI(i));
+            rec[i].h = std::get<1>(p.getIntervalAtI(i));
+        }
+        t1 = std::chrono::high_resolution_clock::now();
+//        bool do_check = true;
+        bool do_check = mambo.queryGrid2(rec);
+        //do the point query and return the cluster the point belongs to
+        if (do_check) {
+            call_lib_spatial(queryRectangle, tree);
+        } else {
+            ++no_extend;
+        }
+        t2 = std::chrono::high_resolution_clock::now();
+        double slib_time = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+        times.push_back(slib_time);
+//        std::cout << "Retrieval time:" << slib_time << std::endl << std::endl;
+    }
 
 //print useful info & stats
 printInfo(tree, file, indexIdentifier);
 
-
+    std::cout<<"no extend:"<< no_extend<<std::endl;
+    std::cout<<"percentage:"<< mambo.percentageOccupied() <<std::endl;
 /*release memory. Order is important*/
     // delete the buffer first, then the storage manager
     // (otherwise the the buffer will fail trying to write the dirty entries).
-    delete tree;
-    delete file;
-    delete on_disk_manager;
-
-    calculate_statistics( times);
+//    delete tree;
+//    delete file;
+//    delete on_disk_manager;
+//
+//    calculate_statistics( times);
 
     return 0;
 }

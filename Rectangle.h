@@ -8,19 +8,17 @@
 #include <vector>
 #include <tuple>
 #include <cassert>
-#include <spatialindex/Region.h>
 #include "Interval.h"
+#include <spatialindex/SpatialIndex.h>
 
 class MyRectangle{
 
 
     std::vector<std::tuple<double, double>> rec;
-
-    void addInterval(std::tuple<double, double> interval){
-        rec.push_back(interval);
-    }
-
 public:
+    size_t getDimensionality(){
+        return rec.size();
+    }
     MyRectangle(Interval::typrect rectangle){
         for (int i = 0; i < Interval::DIMENSIONALITY; ++i) {
             std::tuple<double, double> interval{rectangle[i].l,rectangle[i].h};
@@ -43,7 +41,9 @@ public:
         return region;
     }
 
+    std::tuple<double, double> getIntervalAtI(int i){
+        return rec.at(i);
+    };
 };
-
 
 #endif //BULKLOADRTREE_RECTANGLE_H

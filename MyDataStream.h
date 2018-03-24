@@ -8,16 +8,19 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "Interval.h"
+#include "Grid.h"
 
 class MyDataStream : public SpatialIndex::IDataStream {
 private:
     int input_file;
     SpatialIndex::RTree::Data *m_pNext;
     uint32_t point_counter = 0;
+    Grid &mambo;
+
 public:
 
-    MyDataStream(std::string inputFile, int numof_queries) : input_file(0), m_pNext(nullptr) {
-        input_file = open(inputFile.c_str(), O_RDONLY);
+    MyDataStream(char *inputFile, Grid &grid) : input_file(0), m_pNext(nullptr), mambo(grid) {
+        input_file = open(inputFile, O_RDONLY);
 
         if (input_file == -1){
             std::cerr<<"File not found"<<std::endl;
@@ -63,12 +66,13 @@ public:
         ssize_t nbytes = read(input_file, my_record, sizeof(Interval::typrect));
 
 
+
         if (nbytes == 0){
             m_pNext = nullptr;
             return;
         }
 
-
+        mambo.markInterval(my_record);
         SpatialIndex::Region region = convertRectangleRegion(my_record);
         //constructor only takes regions
         m_pNext = new SpatialIndex::RTree::Data(sizeof(double), reinterpret_cast<byte *>(low), region, id);
