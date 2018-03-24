@@ -32,6 +32,7 @@
 #include <chrono>
 #include "MyVisitor.h"
 #include "MyDataStream.h"
+#include "Rectangle.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -100,10 +101,10 @@ void  call_lib_spatial(SpatialIndex::Region query, SpatialIndex::ISpatialIndex *
 }
 
 
-std::vector<Interval::typrect> readQueryPoints(std::string queryFile) {
+std::vector<MyRectangle> readQueryPoints(std::string queryFile) {
     int datafile;
     Interval::typrect rectangle;
-    std::vector<Interval::typrect > queryPoints{};
+    std::vector<MyRectangle> queryPoints{};
     int length, numbRects, nbytes, i=0;
     struct stat status;
 
@@ -122,7 +123,10 @@ std::vector<Interval::typrect> readQueryPoints(std::string queryFile) {
             exit(-1);
         }
 
+        MyRectangle my_rec(rectangle);
 
+
+        queryPoints.push_back(my_rec);
         i++;
     } while (i < numbRects);
 
@@ -148,12 +152,12 @@ int main(int argc, char **argv) {
     auto capacity = static_cast<uint32_t>(std::stoi(argv[3]));
 
     //create new in memory storage manager
-    SpatialIndex::IStorageManager *in_mem_manager = SpatialIndex::StorageManager::createNewDiskStorageManager(treeFile, 4096);
+    SpatialIndex::IStorageManager *on_disk_manager = SpatialIndex::StorageManager::createNewDiskStorageManager(treeFile, 4096);
 
 //SpatialIndex::StorageManager::
 
     SpatialIndex::StorageManager::IBuffer *file = SpatialIndex::StorageManager::createNewRandomEvictionsBuffer(
-            *in_mem_manager, 10, false);
+            *on_disk_manager, 10, false);
     // applies a main memory random buffer on top of the persistent storage manager
     // (LRU buffer, etc can be created the same way).
 
@@ -183,31 +187,39 @@ int main(int argc, char **argv) {
 
     std::cout<<"Building the index done!"<<std::endl;
 //exit(9);
-    std::vector<Interval::typrect > query_points{};
+    std::vector<MyRectangle > query_points{};
     query_points = readQueryPoints(argv[2]);
     std::cout<<"size:"<<query_points.size()<<std::endl;
     for (auto &p:query_points) {
-        SpatialIndex::Region queryRectangle = MyDataStream::convertRectangleRegion(p);
+        SpatialIndex::Region queryRectangle = p.convertRectangleRegion();
 
-        t1 = std::chrono::high_resolution_clock::now();
-        //do the point query and return the cluster the point belongs to
-        call_lib_spatial(queryRectangle,  tree);
-        t2 = std::chrono::high_resolution_clock::now();
-        double slib_time = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
-        times.push_back(slib_time);
-        std::cout << "Retrieval time:" << slib_time << std::endl<<std::endl;
-    }
+        on_disk_manager->flush();
+        file->clear();
+        file->flush();
 
-    //print useful info & stats
-    printInfo(tree, file, indexIdentifier);
+        system("sync");
+        system("echo 3 > /proc/sys/vm/drop_caches");
+        system("sync");
+
+    t1 = std::chrono::high_resolution_clock::now();
+    //do the point query and return the cluster the point belongs to
+    call_lib_spatial(queryRectangle,  tree);
+    t2 = std::chrono::high_resolution_clock::now();
+    double slib_time = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+    times.push_back(slib_time);
+    std::cout << "Retrieval time:" << slib_time << std::endl<<std::endl;
+}
+
+//print useful info & stats
+printInfo(tree, file, indexIdentifier);
 
 
-    /*release memory. Order is important*/
+/*release memory. Order is important*/
     // delete the buffer first, then the storage manager
     // (otherwise the the buffer will fail trying to write the dirty entries).
     delete tree;
     delete file;
-    delete in_mem_manager;
+    delete on_disk_manager;
 
     calculate_statistics( times);
 

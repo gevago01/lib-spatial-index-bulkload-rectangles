@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 find_package(SpatialIndex REQUIRED)
 
-set(SOURCE_FILES main.cpp MyVisitor.h MyDataStream.h Interval.h)
+set(SOURCE_FILES main.cpp MyVisitor.h MyDataStream.h Interval.h Rectangle.h)
 add_executable(BulkLoadRTree ${SOURCE_FILES})
 
 target_link_libraries(BulkLoadRTree ${SPATIALINDEX_LIBRARIES} )

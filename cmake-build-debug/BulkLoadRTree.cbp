@@ -93,6 +93,9 @@
 		<Unit filename="/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/MyVisitor.h">
 			<Option target="BulkLoadRTree"/>
 		</Unit>
+		<Unit filename="/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/Rectangle.h">
+			<Option target="BulkLoadRTree"/>
+		</Unit>
 		<Unit filename="/home/giannis/ClionProjects/BulkLoadRTreewithRectangles/main.cpp">
 			<Option target="BulkLoadRTree"/>
 		</Unit>
